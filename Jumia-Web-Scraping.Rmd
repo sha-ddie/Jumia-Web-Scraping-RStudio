@@ -40,19 +40,44 @@ jumia = tibble(  "Name"= character(),      # name column
 ```
 
 
+
 ```{r}
 # creating a function that extracts all the products information in a certain category
 category = function(div){ # passing a div parameter
   
-  # selecting all items in that div
-  items = div  %>% html_nodes("div[class='itm col']") 
-  
   # assigning category as the div's title/header in the website
   category = div  %>%html_nodes("h2") %>% html_text()  # text in the h2 tag
   
-  name = items %>% html_node("div[class='name']") %>% html_text() # all item names
-  price = items %>% html_node("div[class='prc']") %>% html_text() # all item prices
-  discount = items %>% html_node("div[class='bdg _dsct']") %>% html_text() #all item discounts
+  # if a category contains see all link
+  see_all_link = div %>% html_nodes("a[class='-df -i-ctr -upp -m -mls -pvxs']")%>% html_attr("href")
+  
+  if (as.logical(length(see_all_link))){
+    
+    url_ = paste0(url,see_all_link %>%  stringr::str_extract( "([^/]+)/$") )
+    new_page = read_html(url_)
+    products = new_page %>% 
+      html_nodes("div[data-catalog='true']") %>%
+      html_nodes("article")
+    
+    # scraping the various product attributes
+    name = products %>% html_node("h3[class='name']")%>%
+      html_text()
+    price = products %>% html_node("div[class='prc']") %>%
+      html_text()
+    discount = products[2] %>% 
+      html_node("div[class='bdg _dsct _sm']") %>% html_text() 
+  }
+  
+  else {
+    # selecting all items in that div
+    items = div  %>% html_nodes("div[class='itm col']") 
+    name = items %>% html_node("div[class='name']") %>%
+      html_text() # all item names
+    price = items %>% html_node("div[class='prc']") %>%
+      html_text() # all item prices
+    discount = items %>% html_node("div[class='bdg _dsct']") %>%
+      html_text() #all item discounts
+  }
   
  # returning a data frame of the extracted items
  return(tibble("Name"= name,  
@@ -81,25 +106,21 @@ jumia = jumia %>%
                               stringr::str_replace_all(pattern="[^0-9]","") )
          ,
          Discount= as.numeric(Discount %>% 
-                                stringr::str_replace_all(pattern="[^0-9]","")  ))
+                                stringr::str_replace_all(pattern="[^0-9]","")  )) 
 # previewing clean data
 head(jumia)
 ```
 
 
 ```{r}
+# assigning zero to NAs in discount column
+jumia$Discount[is.na(jumia$Discount)] = 0
+
 # saving as csv
-readr::write_csv(jumia,"C:/Users/User/Documents/Mulei/Udemy Learning/R/data/jumia_data.csv")
+readr::write_csv(jumia,"./data/jumia_data.csv")
 ```
 
 
-
-##Flash Sales Analysis
-
-
-```{r}
-jumia %>% filter(Category=="Flash Sales")
-```
 
 # Data Analysis
 ```{r}
@@ -108,19 +129,30 @@ library(dplyr)
 library(ggplot2)
 
 #reading data
-jumia=read.csv("C:/Users/User/Documents/Mulei/Udemy Learning/R/data/jumia_data.csv")
+#jumia=read.csv("./data/jumia_data.csv")
 
+# previewing the structure of our scraped data
+jumia %>% skimr::skim()
 ```
 
-- Bellow is the list of the scarped categories and the count of items in each.
-```{r}
 
+-The scraped data contains 472 rows of products and 4 columns of product attributes, with 2 numeric and 3 categorical columns. 97 items do not have discounts.
+
+-Bellow is the list of the scarped categories and the count of items in each.
+```{r}
+# assigning zero to NAs in discount column
+jumia$Discount[is.na(jumia$Discount)] = 0
+
+# counts of items for each scraped category
 jumia %>% 
   group_by(Category) %>% count() %>% arrange(desc(n))
 
 ```
+```{r}
+jumia$Discount %>% summary()
+```
 
--Below is a barplot of the various categories and their average discounts on products
+-Below is a bar plot of the various categories and their average discounts on products
 ```{r}
 # bar plot of categories vs discount
 
