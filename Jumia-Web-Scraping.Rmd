@@ -77,12 +77,11 @@ head(jumia, n=10)
 
 # In both columns we will replace all non numeric numbers with a blank
 jumia = jumia %>% 
-  mutate(Price = as.numeric(Price %>%
+  mutate(Price = as.numeric(jumia$Price %>% stringr::str_sub(-8) %>% 
                               stringr::str_replace_all(pattern="[^0-9]","") )
          ,
          Discount= as.numeric(Discount %>% 
                                 stringr::str_replace_all(pattern="[^0-9]","")  ))
-
 # previewing clean data
 head(jumia)
 ```
@@ -90,15 +89,26 @@ head(jumia)
 
 ```{r}
 # saving as csv
-readr::write_csv(jumia,"../data/jumia_data.csv")
+readr::write_csv(jumia,"C:/Users/User/Documents/Mulei/Udemy Learning/R/data/jumia_data.csv")
 ```
 
+
+
+##Flash Sales Analysis
+
+
+```{r}
+jumia %>% filter(Category=="Flash Sales")
+```
 
 # Data Analysis
 ```{r}
 # loading required packages
 library(dplyr)
 library(ggplot2)
+
+#reading data
+jumia=read.csv("C:/Users/User/Documents/Mulei/Udemy Learning/R/data/jumia_data.csv")
 
 ```
 
@@ -121,7 +131,7 @@ plot= jumia %>%
   arrange(desc(discount)) %>% 
   ggplot(aes(x=forcats::fct_reorder(Category,desc(discount)), 
                y=discount))+
-  geom_col() + # bar plot layer
+  geom_col(fill="cadetblue4") + # bar plot layer
   geom_label(aes(label = paste(round(discount,1),"%")),size=3) #adding discount as text labels
 
 # formating the plot
@@ -141,7 +151,7 @@ plot+
 
 -Below is a bar plot of the top 5 categories with the lowest prices
 ```{r}
-# barp lot of categories vs Price
+# bar plot of categories vs Price
 
 # creating plot
 plot= jumia %>% 
@@ -177,7 +187,7 @@ data = jumia %>%
   # creating the plot
 ggplot(data=data, aes(x= forcats::fct_reorder(Name,Discount),
                       y=Discount, 
-                      label=paste("Disc:",Discount," Price:",Price)))+
+                      label=paste("Price:",Price, ", -",Discount,"%")))+
   geom_col(inherit.aes = T)+
   geom_label(size=3)+
   labs(title = "Top 10 Products with highets Discounts",
@@ -190,13 +200,16 @@ ggplot(data=data, aes(x= forcats::fct_reorder(Name,Discount),
 
 
 ```{r}
-
-
+v="All"
+cats=unique(jumia$Category)
+jumia %>% 
+  sapply(for)
+      filter(Category==(ifelse(v=="All",c(cats),v) ))
 ```
 
 
 ```{r}
-
+unique(jumia$Category) %>% unlist() %>% class()
 
 ```
 
