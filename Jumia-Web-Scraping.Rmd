@@ -18,6 +18,7 @@ library(httr)
 ```
 
 ## web scraping
+-We start by getting thewebsite url and reading getting its contents
 ```{r}
 url= "https://www.jumia.co.ke/"
 
@@ -27,7 +28,7 @@ page = read_html(url)
 # checking response
 (httr::status_code(GET(url))) # its 200
 ```
-
+-Then extract all the div tags that contain the diferent categories of products e.g flash sales, clearance sales etc
 ```{r}
 # Extracting all category tabs that contain all the products 
 divs = page %>% html_nodes("div[class='col16 -pvs']") #saving to div variable
@@ -39,8 +40,41 @@ jumia = tibble(  "Name"= character(),      # name column
          "Category"= character())          # category column
 ```
 
+```{r}
+see_all_link = divs[6] %>% html_nodes("a[class='-df -i-ctr -upp -m -mls -pvxs']")%>% html_attr("href")
+url_ = paste0(url,see_all_link %>%  stringr::str_extract( "([^/]+)/$") )
+new_page = read_html(url_)
 
 
+next_page_link = new_page %>% html_node("a[aria-label='Next Page']") %>% html_attr("href")
+(next_page_link)
+paste0(url_, next_page_link %>%  stringr::str_extract( "\\?([^/]+)$") )
+
+while(!is.na(next_page_link)){
+  
+  print(next_page_link)
+  url_page = paste0(url_, next_page_link %>%  stringr::str_extract( "\\?([^/]+)$") )
+  new_page = read_html(url_page)
+  next_page_link = new_page %>% html_node("a[aria-label='Next Page']") %>% html_attr("href")
+}
+
+new_page = read_html("https://www.jumia.co.ke/mlp-top-deals/?page=7#catalog-listing")
+
+
+next_page_link = read_html("https://www.jumia.co.ke/mlp-top-deals/?page=7#catalog-listing") %>%
+  html_node("a[aria-label='Next Page']") %>% html_attr("href")
+!is.na(next_page_link)
+
+new_page = read_html("https://www.jumia.co.ke/smartphones/?page=50#catalog-listing")
+products = new_page %>% html_nodes("div[data-catalog='true']") %>%  html_nodes("article")
+      
+        # scraping all product from this page
+name_ = products %>% html_node("h3[class='name']")%>%
+        html_text()
+```
+
+
+-We then create a function that scrapes all the products from each category div.
 ```{r}
 # creating a function that extracts all the products information in a certain category
 category = function(div){ # passing a div parameter
@@ -51,11 +85,11 @@ category = function(div){ # passing a div parameter
   # if a category contains see all link
   see_all_link = div %>% html_nodes("a[class='-df -i-ctr -upp -m -mls -pvxs']")%>% html_attr("href")
   
-  if (as.logical(length(see_all_link))){
+  if (length(see_all_link)){
     
     url_ = paste0(url,see_all_link %>%  stringr::str_extract( "([^/]+)/$") )
     new_page = read_html(url_)
-    products = new_page %>% 
+    products = new_page %>%   
       html_nodes("div[data-catalog='true']") %>%
       html_nodes("article")
     
@@ -64,8 +98,32 @@ category = function(div){ # passing a div parameter
       html_text()
     price = products %>% html_node("div[class='prc']") %>%
       html_text()
-    discount = products[2] %>% 
+    discount = products %>% 
       html_node("div[class='bdg _dsct _sm']") %>% html_text() 
+   
+    
+    # scarping the bottom pages in our new page of all categories
+    next_page_link = new_page %>% html_node("a[aria-label='Next Page']") %>% html_attr("href")
+    
+    while(!is.na(next_page_link)) {
+      url_page = paste0(url_, next_page_link %>%  stringr::str_extract( "\\?([^/]+)$") ) # getting url for that page
+      new_page = read_html(url_page)                                                     #reading the page contents
+
+      products = new_page %>% html_nodes("div[data-catalog='true']") %>%  html_nodes("article")
+      
+        # scraping all product from this page
+      name_ = products %>% html_node("h3[class='name']")%>%
+        html_text()
+      price_ = products %>% html_node("div[class='prc']") %>%
+        html_text()
+      discount_ = products %>% 
+        html_node("div[class='bdg _dsct _sm']") %>% html_text() 
+
+      name=c(name,name_); price=c(price,price_); discount=c(discount,discount_)
+      
+      next_page_link = new_page %>% html_node("a[aria-label='Next Page']") %>% html_attr("href")
+    }
+    
   }
   
   else {
@@ -80,10 +138,10 @@ category = function(div){ # passing a div parameter
   }
   
  # returning a data frame of the extracted items
- return(tibble("Name"= name,  
+ return(tibble( "Name"= name,  
          "Price" = price,
          "Discount" = discount,
-         "Category"=  category) )
+         "Category"=  category))
 
 }
 
@@ -97,6 +155,7 @@ head(jumia, n=10)
 ```
 
 ## Cleaning and saving the scraped data
+-After scraping the items, we clean the data snd store it in csv format.
 ```{r}
 # converting the price and discount columns to integers
 
@@ -231,53 +290,9 @@ ggplot(data=data, aes(x= forcats::fct_reorder(Name,Discount),
 ```
 
 
-```{r}
-v="All"
-cats=unique(jumia$Category)
-jumia %>% 
-  sapply(for)
-      filter(Category==(ifelse(v=="All",c(cats),v) ))
-```
+
 
 
 ```{r}
-unique(jumia$Category) %>% unlist() %>% class()
-
-```
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
-
 ```
 
