@@ -1,0 +1,12 @@
+name: dashboard_deployment
+title: dashboard_deployment
+username: sha-ddie
+account: sha-ddie
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11144286
+bundleId: 8224472
+url: https://sha-ddie.shinyapps.io/dashboard_deployment/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
