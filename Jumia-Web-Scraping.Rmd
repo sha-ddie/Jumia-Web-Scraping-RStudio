@@ -18,8 +18,9 @@ library(httr)
 ```
 
 ## web scraping
--We start by getting thewebsite url and reading getting its contents
+-We start by getting the website url and reading getting its contents
 ```{r}
+
 url= "https://www.jumia.co.ke/"
 
 # reading url
@@ -40,38 +41,6 @@ jumia = tibble(  "Name"= character(),      # name column
          "Category"= character())          # category column
 ```
 
-```{r}
-see_all_link = divs[6] %>% html_nodes("a[class='-df -i-ctr -upp -m -mls -pvxs']")%>% html_attr("href")
-url_ = paste0(url,see_all_link %>%  stringr::str_extract( "([^/]+)/$") )
-new_page = read_html(url_)
-
-
-next_page_link = new_page %>% html_node("a[aria-label='Next Page']") %>% html_attr("href")
-(next_page_link)
-paste0(url_, next_page_link %>%  stringr::str_extract( "\\?([^/]+)$") )
-
-while(!is.na(next_page_link)){
-  
-  print(next_page_link)
-  url_page = paste0(url_, next_page_link %>%  stringr::str_extract( "\\?([^/]+)$") )
-  new_page = read_html(url_page)
-  next_page_link = new_page %>% html_node("a[aria-label='Next Page']") %>% html_attr("href")
-}
-
-new_page = read_html("https://www.jumia.co.ke/mlp-top-deals/?page=7#catalog-listing")
-
-
-next_page_link = read_html("https://www.jumia.co.ke/mlp-top-deals/?page=7#catalog-listing") %>%
-  html_node("a[aria-label='Next Page']") %>% html_attr("href")
-!is.na(next_page_link)
-
-new_page = read_html("https://www.jumia.co.ke/smartphones/?page=50#catalog-listing")
-products = new_page %>% html_nodes("div[data-catalog='true']") %>%  html_nodes("article")
-      
-        # scraping all product from this page
-name_ = products %>% html_node("h3[class='name']")%>%
-        html_text()
-```
 
 
 -We then create a function that scrapes all the products from each category div.
@@ -155,7 +124,7 @@ head(jumia, n=10)
 ```
 
 ## Cleaning and saving the scraped data
--After scraping the items, we clean the data snd store it in csv format.
+-After scraping the items, we clean the data and store it in csv format.
 ```{r}
 # converting the price and discount columns to integers
 
@@ -188,27 +157,29 @@ library(dplyr)
 library(ggplot2)
 
 #reading data
-#jumia=read.csv("./data/jumia_data.csv")
+jumia=read.csv("./data/jumia_data.csv")
 
 # previewing the structure of our scraped data
 jumia %>% skimr::skim()
 ```
 
 
--The scraped data contains 472 rows of products and 4 columns of product attributes, with 2 numeric and 3 categorical columns. 97 items do not have discounts.
+
+-The scraped data contains 14,724  rows of products and 4 columns of product attributes, with 2 numeric and 2 categorical columns. 97 items do not have discounts.
+
+> **NB**: The data use is scraped on 7th February, 2024 from Jumia Website
 
 -Bellow is the list of the scarped categories and the count of items in each.
 ```{r}
-# assigning zero to NAs in discount column
-jumia$Discount[is.na(jumia$Discount)] = 0
-
 # counts of items for each scraped category
 jumia %>% 
   group_by(Category) %>% count() %>% arrange(desc(n))
 
 ```
 ```{r}
-jumia$Discount %>% summary()
+jumia %>% 
+  mutate(Category = strtrim(Category,19)) %>% 
+  select(Category) %>% unique()
 ```
 
 -Below is a bar plot of the various categories and their average discounts on products
@@ -216,26 +187,29 @@ jumia$Discount %>% summary()
 # bar plot of categories vs discount
 
 # creating plot
-plot= jumia %>% 
+plot_1= jumia %>% 
+  mutate(Category = strtrim(Category,19)) %>% 
   group_by(Category) %>% 
   summarize(count=n(),discount= mean(Discount, na.rm = T)) %>% 
   arrange(desc(discount)) %>% 
   ggplot(aes(x=forcats::fct_reorder(Category,desc(discount)), 
                y=discount))+
   geom_col(fill="cadetblue4") + # bar plot layer
-  geom_label(aes(label = paste(round(discount,1),"%")),size=3) #adding discount as text labels
+  geom_label(aes(label = paste(round(discount,1),"%")),size=3)+ #adding discount as text labels
 
 # formating the plot
-plot+
   # adding x and y labels
-  labs(title = "Barplot of Categories Vs Discount",
+  labs(title = "Top 10 Categories with Highest Discounts",
+        subtitle = "BarPlot of Categories Vs Discount",
        y="Discount",
-       x="Categories")+
+       x="Categories",
+        caption="@mulei")+
   theme_bw()+
   # rotating the x labels
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90),
+        plot.background = element_rect(fill = "lightgray"))
   
-
+plot_1
 ```
 -Clearance Deals have the highest discounted products, as the category has a discount of 43.7%, hence if in need of large discounts go to the clearance deals category followed by Men's shoes and Deals on Phones and accessories.
 
@@ -245,54 +219,63 @@ plot+
 # bar plot of categories vs Price
 
 # creating plot
-plot= jumia %>% 
+plot_2= jumia %>% 
   group_by(Category) %>% 
   summarize(count=n(),price= mean(Price, na.rm = T)) %>% 
   filter( rank(price)<=5) %>% 
-  ggplot(aes(x=forcats::fct_reorder(Category,price), 
+  ggplot(aes(x=forcats::fct_reorder(Category,desc(price)), 
                y=price))+
-  geom_col() + # bar plot layer
-  geom_label(aes(label = round(price,1)),size=3) #adding discount as text labels
+  geom_col(fill="cadetblue4") + # bar plot layer
+  geom_label(aes(label = round(price,0)),size=3)+ #adding discount as text labels
 
 # formatting the plot
-plot+
   # adding x and y labels
-  labs(title = "Top 5 Categories with Lowest Prices",
+  labs( title = "Top 5 Categories with Lowest Price Range",
+       subtitle = "BarPlot of Categoriry vs Price",
        y="Price",
-       x="Categories")+
+       x="Categories",
+       caption="@mulei")+
   theme_bw()+
   # rotating the x labels
-  theme(axis.text.x = element_text(angle = 90))
-  
+  theme(axis.text.x = element_text(angle = 90),
+        plot.background = element_rect(fill = "lightgray"))
+
+plot_2 
 ```
 -Body shop has products with the lowest prices followed by Clearance Deals and Drink up discounts
 
--Bellow ae the top 10 products with the highest discounts today
+-Bellow are the top 10 products with the highest discounts today
+
 ```{r}
 # filtering the data
-data = jumia %>% 
-  arrange(desc(Discount)) %>% 
-  filter(rank(desc(Discount))<=5) %>% 
-  mutate(Name=stringr::str_sub(Name,1,16))
+plot_3 = jumia %>% 
+  arrange(desc(Discount), desc(Price)) %>%
+  filter(row_number() <= 5) %>% 
+  mutate(Name=stringr::str_sub(Name,1,25)) %>% 
 
   # creating the plot
-ggplot(data=data, aes(x= forcats::fct_reorder(Name,Discount),
-                      y=Discount, 
-                      label=paste("Price:",Price, ", -",Discount,"%")))+
-  geom_col(inherit.aes = T)+
-  geom_label(size=3)+
-  labs(title = "Top 10 Products with highets Discounts",
+ggplot( aes(x= Name,
+            y= Price))+
+  geom_col(fill="cadetblue4")+
+  geom_label( aes(label=paste("Price:",Price, ", -",Discount,"%")),size=3)+
+  labs(title = "Top 5 Products with Highets Discounts",
+       subtitle = "BarPlot of Product Name Vs Discount",
        y="Discount",
-       x="Product Name")+
+       x="Product Name",
+       caption = "@mulei")+
   theme_bw()+
-  theme(axis.text.x = element_text(angle=90))
-  
+  theme(axis.text.x = element_text(angle=90),
+        plot.background = element_rect(fill = "lightgray"))
+
+plot_3  
 ```
-
-
-
 
 
 ```{r}
+# saving the plots
+ggsave("./data/plot_1.png", plot_1)
+ggsave("./data/plot_2.png", plot_2)
+ggsave("./data/plot_3.png", plot_3)
 ```
+
 
