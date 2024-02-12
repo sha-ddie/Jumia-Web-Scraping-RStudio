@@ -5,7 +5,10 @@ library(shinydashboard)
 library(ggplot2)
 library(dplyr)
 
-jumia=read.csv("./jumia_data.csv")
+
+# Scraped data
+jumia=read.csv("jumia_data.csv")
+
 
 ui <- dashboardPage(
   
@@ -26,44 +29,44 @@ ui <- dashboardPage(
     # Boxes need to be put in a row (or column)
     tabItems(
       # website tab
-      tabItem(tabName = "dashboard",  h2("Scraped Data-Jumia Website (Today's Data)"),
+      tabItem(tabName = "dashboard",  h2("Jumia Website - Data Dashboard"),
               fluidRow(
-                    box(title = "Embedded Website",
-                        width = 12,
-                        height = "52px",
-                        solidHeader = TRUE,
-                        collapsible = TRUE,
-                        uiOutput("tab")
-                        )),
+                box(title = "Embedded Website",
+                    width = 12,
+                    height = "52px",
+                    solidHeader = TRUE,
+                    collapsible = TRUE,
+                    uiOutput("tab")
+                )),
               fluidRow(
                 column( width=5,
-                    #price slider
-                    box(title = "Table Filters",
-                        sliderInput("price_slider", "Price Range", 
-                                    min=0, max=max(jumia$Price),step=1000, value=c(0,40000)),
-                        selectInput("category", "Select Categories", 
-                                    choices = c("All",unique(jumia$Category))),
-                        sliderInput("dsc_slider", "Discount Range", 
-                                    min=0, max=max(jumia$Discount),step=10, value=c(0,max(jumia$Discount))),
-                        width = 12, height = "350px"
-                    ),
-                    # Display text
-                    box( 
-                         verbatimTextOutput("table_info"), 
-                         width = 12
-                         ) 
-                    ),
+                        #price slider
+                        box(title = "Table Filters",
+                            sliderInput("price_slider", "Price Range", 
+                                        min=0, max=max(jumia$Price),step=1000, value=c(0,40000)),
+                            selectInput("category", "Select Categories", 
+                                        choices = c("All",unique(jumia$Category))),
+                            sliderInput("dsc_slider", "Discount Range", 
+                                        min=0, max=max(jumia$Discount),step=10, value=c(0,max(jumia$Discount))),
+                            width = 12, height = "350px"
+                        ),
+                        # Display text
+                        box( 
+                          verbatimTextOutput("table_info"), 
+                          width = 12
+                        ) 
+                ),
                 column(width = 7,
-                    # table box
-                    box(title = "Table Output",
-                        status = "primary",
-                        solidHeader = TRUE,
-                        collapsible = TRUE,
-                        DT::dataTableOutput( "table1"),
-                        #tableOutput("table1"),
-                        width=12 ))
-                  ) # end of fluid row
-            ), #end of dashboard tab item
+                       # table box
+                       box(title = "Table Output",
+                           status = "primary",
+                           solidHeader = TRUE,
+                           collapsible = TRUE,
+                           DT::dataTableOutput( "table1"),
+                           #tableOutput("table1"),
+                           width=12 ))
+              ) # end of fluid row
+      ), #end of dashboard tab item
       #charts tab
       tabItem(tabName="charts",h2("Analysis Charts"),
               fluidRow( box(title = "Top 5 Categories with High Discounts",
@@ -78,15 +81,17 @@ ui <- dashboardPage(
                             plotOutput("charts_3"),
                             background = "olive",
                             width=12)
-                        )
-        ) #end of charts tab item   
+              )
+      ) #end of charts tab item   
     ) # end of tab items
   ) # end of body
 ) # end of ui
 
+
+
 server <- function(input, output) {
-  
-  
+
+  print("Sever")
  
   output$tab <- renderUI({
     url <- a("Jumia Homepage", href="https://www.jumia.co.ke/")
@@ -122,10 +127,6 @@ server <- function(input, output) {
     )
   })
   
-  #output$table1 <- renderTable({
-   # req(table())
-    #table()
-#  })
   
   output$table_info = renderText({
       if (input$category == "All") {

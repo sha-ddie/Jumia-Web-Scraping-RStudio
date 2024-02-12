@@ -10,14 +10,128 @@ library(shiny)
 library(shinydashboard)
 library(ggplot2)
 library(dplyr)
-
+library(rvest)
 ```
 
+# Scraping data
+-The chunck bellow is used for scraping the data
 ```{r}
-jumia=read.csv("./jumia_data.csv")
+print("Please Wait, Web Scraping In-progress...")
+
+url= "https://www.jumia.co.ke/"
+
+# reading url
+page = read_html(url)
+
+# Extracting all category tabs that contain all the products 
+divs = page %>% html_nodes("div[class='col16 -pvs']") #saving to div variable
+
+# creating an empty data frame to save the data
+jumia = tibble(  "Name"= character(),      # name column
+         "Price" =character(),             # price column
+         "Discount" =character(),          # discount column
+         "Category"= character())          # category column
+# Extracting all category tabs that contain all the products 
+divs = page %>% html_nodes("div[class='col16 -pvs']") #saving to div variable
+
+# creating an empty data frame to save the data
+jumia = tibble(  "Name"= character(),      # name column
+         "Price" =character(),             # price column
+         "Discount" =character(),          # discount column
+         "Category"= character())          # category column
+
+
+# creating a function that extracts all the products information in a certain category
+category = function(div){ # passing a div parameter
+  
+  # assigning category as the div's title/header in the website
+  category = div  %>%html_nodes("h2") %>% html_text()  # text in the h2 tag
+  
+  # if a category contains see all link
+  see_all_link = div %>% html_nodes("a[class='-df -i-ctr -upp -m -mls -pvxs']")%>% html_attr("href")
+  
+  if (length(see_all_link)){
+    
+    url_ = paste0(url,see_all_link %>%  stringr::str_extract( "([^/]+)/$") )
+    new_page = read_html(url_)
+    products = new_page %>%   
+      html_nodes("div[data-catalog='true']") %>%
+      html_nodes("article")
+    
+    # scraping the various product attributes
+    name = products %>% html_node("h3[class='name']")%>%
+      html_text()
+    price = products %>% html_node("div[class='prc']") %>%
+      html_text()
+    discount = products %>% 
+      html_node("div[class='bdg _dsct _sm']") %>% html_text() 
+   
+    
+    # scarping the bottom pages in our new page of all categories
+    next_page_link = new_page %>% html_node("a[aria-label='Next Page']") %>% html_attr("href")
+    
+    while(!is.na(next_page_link)) {
+      url_page = paste0(url_, next_page_link %>%  stringr::str_extract( "\\?([^/]+)$") ) # getting url for that page
+      new_page = read_html(url_page)                                                     #reading the page contents
+
+      products = new_page %>% html_nodes("div[data-catalog='true']") %>%  html_nodes("article")
+      
+        # scraping all product from this page
+      name_ = products %>% html_node("h3[class='name']")%>%
+        html_text()
+      price_ = products %>% html_node("div[class='prc']") %>%
+        html_text()
+      discount_ = products %>% 
+        html_node("div[class='bdg _dsct _sm']") %>% html_text() 
+
+      name=c(name,name_); price=c(price,price_); discount=c(discount,discount_)
+      
+      next_page_link = new_page %>% html_node("a[aria-label='Next Page']") %>% html_attr("href")
+    }
+    
+  }
+  
+  else {
+    # selecting all items in that div
+    items = div  %>% html_nodes("div[class='itm col']") 
+    name = items %>% html_node("div[class='name']") %>%
+      html_text() # all item names
+    price = items %>% html_node("div[class='prc']") %>%
+      html_text() # all item prices
+    discount = items %>% html_node("div[class='bdg _dsct']") %>%
+      html_text() #all item discounts
+  }
+  
+ # returning a data frame of the extracted items
+ return(tibble( "Name"= name,  
+         "Price" = price,
+         "Discount" = discount,
+         "Category"=  category))
+
+}
+
+# running the above category function to all the category divs and appending the data to the jumia data frame
+for(div in divs[c(2,4:23)]){
+  jumia= bind_rows(jumia,category(div))
+}
+
+# converting the price and discount columns to integers
+jumia = jumia %>% 
+  mutate(Price = as.numeric(jumia$Price %>% stringr::str_sub(-8) %>% 
+                              stringr::str_replace_all(pattern="[^0-9]","") )
+         ,
+         Discount= as.numeric(Discount %>% 
+                                stringr::str_replace_all(pattern="[^0-9]","")  )) 
+
+# assigning zero to NAs in discount column
+jumia$Discount[is.na(jumia$Discount)] = 0
+
+print("Web Scraping Completed")
 ```
 
 
+# User Inteface
+-After data has peen obtained, the code below creates the apps user interface
 ```{r}
 
 ui <- dashboardPage(
@@ -39,7 +153,7 @@ ui <- dashboardPage(
     # Boxes need to be put in a row (or column)
     tabItems(
       # website tab
-      tabItem(tabName = "dashboard",  h2("Scraped Data-Jumia Website (Today's Data)"),
+      tabItem(tabName = "dashboard",  h2("Jumia Website - Data Dashboard"),
               fluidRow(
                     box(title = "Embedded Website",
                         width = 12,
@@ -100,6 +214,8 @@ ui <- dashboardPage(
 
 ```
 
+# server
+-The code below created output for the UI functionalities above;
 ```{r}
 server <- function(input, output) {
   
@@ -234,8 +350,12 @@ server <- function(input, output) {
   
 } # end of server
 
-shinyApp(ui, server)
+
 
 ```
 
+# Runing app
+```{r}
+shinyApp(ui, server)
+```
 
