@@ -176,11 +176,7 @@ jumia %>%
   group_by(Category) %>% count() %>% arrange(desc(n))
 
 ```
-```{r}
-jumia %>% 
-  mutate(Category = strtrim(Category,19)) %>% 
-  select(Category) %>% unique()
-```
+
 
 -Below is a bar plot of the various categories and their average discounts on products
 ```{r}
@@ -273,9 +269,9 @@ plot_3
 
 ```{r}
 # saving the plots
-ggsave("./data/plot_1.png", plot_1)
-ggsave("./data/plot_2.png", plot_2)
-ggsave("./data/plot_3.png", plot_3)
+ggsave("./data/plot_1.png", plot_1, width=8, height=4)
+ggsave("./data/plot_2.png", plot_2,width=7, height=4)
+ggsave("./data/plot_3.png", plot_3,width=7, height=4)
 ```
 
 
