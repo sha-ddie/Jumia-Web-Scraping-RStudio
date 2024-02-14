@@ -27,13 +27,18 @@ After web scraping, data cleaning undertaken to the data were;
 * Handling Missing Values: Products listed without listed discounts contained null values, hence the null values were replace with the value `0`.
 * Data Type Conversion: Character type of the `Price` and `Discount` columns were converted to Numeric type.
 
-After data cleaning, and Exploratory Data Analysis was conducted and the following patterns were identified;
-
+After data cleaning, some Exploratory Data Analysis was conducted on the data;
 ![Plot](data/plot_1.png)
 
-![Plot](data/plot_2.png)
+The plot above shows how the discounts are distributed across different categories, with the `Top Deal` having the highest discounted products.
 
-![Plot](data/plot_3.png)
+For more information on the analsis process and source code view the [analysis notebook](https://github.com/sha-ddie/Jumia-Web-Scraping-RStudio/blob/main/Jumia-Web-Scraping.Rmd)
 
-# Conclusion
+# Deployment
+After anlysis, a shiny dashboard was created and deployed for user interactions. The dashboard containes the scraped data that is displayed in a tabular format and users can easily search, filter and find product discounts and offers at ease.
+
+To view the live dashboard, check this [Link](https://sha-ddie.shinyapps.io/dashboard_deployment/) 
+
+To view the dashboard code, check the link [Link](https://github.com/sha-ddie/Jumia-Web-Scraping-RStudio/blob/main/dashboard_deployment/Shiny_Dashboard.R)
+
 
